@@ -1,10 +1,14 @@
-# Multi-Agent Coordination Template
+# Back Office
 
-**GitHub-first coordination system for multi-agent Claude Code projects.**
+**Coordination repo for office tools implementation** — Google Docs MCP and future tools to support office work, document creation, etc.
 
 This system uses **GitHub Issues as the source of truth** for task tracking, with local state for agent coordination and time tracking.
 
-> **Creating a new project from this template?** See the [Setup Guide](https://github.com/TreeMetrics/coordination-template-v2/wiki/Setup-Guide) in the wiki.
+## Code Repositories
+
+| Repo | Purpose |
+|------|---------|
+| [google-docs-mcp](https://github.com/TreeMetrics/google-docs-mcp) | MCP tool for editing Google Docs directly with Claude (forked from [a-bonus/google-docs-mcp](https://github.com/a-bonus/google-docs-mcp)) |
 
 ---
 
@@ -20,7 +24,7 @@ cd shared-workspace/shared-resources/scripts
 ./gh-start-task.py 1 --agent yourname-task
 
 # Create branch with worktree (for code changes)
-./gh-create-branch.py 1 --repo backend --worktree
+./gh-create-branch.py 1 --repo google-docs-mcp --worktree
 
 # When done, create PR (from worktree)
 ./gh-create-pr.py 1 --title "Your PR title"

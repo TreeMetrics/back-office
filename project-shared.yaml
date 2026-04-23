@@ -12,10 +12,10 @@
 # For PERSONAL settings (local file paths), see project-local.yaml.template
 
 project:
-  name: "Coordination Template"
+  name: "Back Office"
 
   coordination_repo:
-    github: "TreeMetrics/coordination-template-v2"
+    github: "TreeMetrics/back-office"
     branch: "main"
 
   github:
@@ -110,16 +110,10 @@ project:
 # Shared metadata about code repositories this coordination project works with
 # Local filesystem paths go in project-local.yaml (not tracked in git)
 code_repositories:
-  # Example configuration (uncomment and customize for your project):
-  # - name: "backend"
-  #   github: "YourOrg/backend-repo"     # GitHub repository URL
-  #   default_branch: "main"              # Default branch for this repo
-  #   type: "rails"                       # Optional: repo type (rails, node, python, etc.)
-  #
-  # - name: "frontend"
-  #   github: "YourOrg/frontend-repo"
-  #   default_branch: "main"
-  #   type: "ember"
+  - name: "google-docs-mcp"
+    github: "TreeMetrics/google-docs-mcp"
+    default_branch: "main"
+    type: "node"
 
 # Worktree and Branch Naming Conventions
 #
