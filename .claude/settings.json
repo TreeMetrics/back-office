@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./shared-workspace/shared-resources/scripts/gh-list-tasks.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-start-task.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-stop-work.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-create-issue.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-create-branch.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-create-pr.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-query-prs.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-update-status.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-release-agent.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-sync-time.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-sync-labels-from-board.py:*)",
+      "Bash(./shared-workspace/shared-resources/scripts/gh-add-sub-issue.py:*)",
+
+      "Bash(python3 .claude/skills/apply-upgrade/upgrade.py:*)",
+
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git status:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "Bash(git pull:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+
+      "Bash(gh pr view:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh issue comment:*)",
+      "Bash(gh repo view:*)",
+
+      "Bash(ls:*)",
+
+      "Edit(shared-workspace/docs/**)",
+      "Write(shared-workspace/docs/**)",
+      "Edit(personal/**)",
+      "Write(personal/**)"
+    ]
+  }
+}

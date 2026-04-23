@@ -1,0 +1,136 @@
+# Shared Project Configuration (Tracked in Git)
+#
+# This file contains project-wide constants that are the SAME for all team members:
+# - GitHub organization and project board IDs
+# - GitHub Project field IDs and option mappings
+# - Code repository metadata (GitHub URLs, branches)
+# - Label mappings and workflow definitions
+#
+# These values are tracked in git to ensure everyone has the same configuration
+# and to eliminate manual update notifications when GitHub IDs change.
+#
+# For PERSONAL settings (local file paths), see project-local.yaml.template
+
+project:
+  name: "Coordination Template"
+
+  coordination_repo:
+    github: "TreeMetrics/coordination-template-v2"
+    branch: "main"
+
+  github:
+    enabled: true
+    org: "TreeMetrics"
+
+    # GitHub Project Board (optional)
+    # Get with: gh project list --owner TreeMetrics
+    # Two IDs needed: gh CLI uses number, GraphQL API uses node ID
+    project_board_number: null  # Project number for gh CLI (e.g., 16)
+    project_board_id: null      # Node ID for GraphQL API (e.g., "PVT_kwDOAAzY884Arwin")
+
+    # GitHub Project Custom Fields
+    # These IDs are SHARED across all developers - everyone needs the same IDs
+    # Get field IDs with: gh project field-list <project-number> --owner <org>
+    # Get option IDs: see shared-workspace/GET-PROJECT-FIELD-IDS.md
+    project_fields:
+      status:
+        # Field ID for "Status" single-select field
+        # Example: "PVTSSF_lADOAAzY884Arwinzgiyu7M"
+        field_id: null
+
+        options:
+          # Map label status names to GitHub Project option IDs
+          # These option IDs are specific to your GitHub Project
+          # Get these using the GraphQL query in GET-PROJECT-FIELD-IDS.md
+          triage: null           # Option ID for "Triage" or "Todo"
+          ready: null            # Option ID for "Ready"
+          in-progress: null      # Option ID for "In Progress"
+          ready-for-review: null # Option ID for "Ready for Review"
+          review: null           # Option ID for "In Review"
+          ready-to-test: null    # Option ID for "Ready to Test"
+          testing: null          # Option ID for "Testing"
+          blocked: null          # Option ID for "Blocked"
+          done: null             # Option ID for "Done"
+
+      logged_time:
+        # Field ID for "Logged time" number field
+        # Example: "PVTF_lADOAAzY884Arwinzgiyu8Q"
+        field_id: null
+
+      planned_time:
+        # Field ID for "Planned time" number field
+        # Example: "PVTF_lADOAAzY884Arwinzgiyu8U"
+        field_id: null
+
+      target_date:
+        # Field ID for "Target date" date field
+        # Enables GitHub Projects roadmap/timeline view
+        # Example: "PVTF_lADOAAzY884Arwinzgiyu8V"
+        field_id: null
+
+      start_date:
+        # Field ID for "Start date" date field
+        # Combined with target_date, enables roadmap bars showing work duration
+        # Example: "PVTF_lADOAAzY884Arwinzgiyu8W"
+        field_id: null
+
+    # DEPRECATED: Old format for backwards compatibility
+    # Use project_fields instead
+    time_tracking_fields:
+      logged_time_field_id: null
+      planned_time_field_id: null
+
+  # GitHub Label Mappings (TreeMetrics 8-state workflow)
+  # These define the standard labels used across all projects
+  label_mappings:
+    status:
+      - triage           # New issue, needs initial assessment
+      - ready            # Assessed and ready to start work
+      - in-progress      # Actively implementing
+      - ready-for-review # PR created, awaiting code review
+      - review           # Code review in progress
+      - ready-to-test    # Merged, awaiting QA
+      - testing          # QA actively testing
+      - blocked          # Cannot proceed (can happen at any stage)
+      - done             # Released to production
+
+    priority:
+      - high
+      - medium
+      - low
+
+    type:
+      - feature
+      - bug
+      - infrastructure
+      - docs
+      - test
+
+# Code Repositories
+# Shared metadata about code repositories this coordination project works with
+# Local filesystem paths go in project-local.yaml (not tracked in git)
+code_repositories:
+  # Example configuration (uncomment and customize for your project):
+  # - name: "backend"
+  #   github: "YourOrg/backend-repo"     # GitHub repository URL
+  #   default_branch: "main"              # Default branch for this repo
+  #   type: "rails"                       # Optional: repo type (rails, node, python, etc.)
+  #
+  # - name: "frontend"
+  #   github: "YourOrg/frontend-repo"
+  #   default_branch: "main"
+  #   type: "ember"
+
+# Worktree and Branch Naming Conventions
+#
+# To prevent collisions when multiple coordination projects work on the same codebase,
+# include the coordination project name in worktree and branch names:
+#
+# - Worktrees: {worktree_parent}/{coord_project}_{issue#}/
+#   Example: ~/workspace/backend_dev/myproject_7/
+#
+# - Branches: {coord_project}_{issue#}_{description}
+#   Example: myproject_7_user_authentication
+#
+# This allows multiple teams (e.g., qarlbo, sintetic, fw) to work on shared repos
+# (e.g., tm_api, ember-forest) without branch or worktree naming conflicts.

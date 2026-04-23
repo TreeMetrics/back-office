@@ -1,0 +1,29 @@
+# Test Project Configuration (Local)
+#
+# Copy this to project-local-test.yaml and customize paths for your machine.
+# This file is gitignored - each developer has their own copy.
+#
+# Setup:
+# 1. Copy: cp tests/fixtures/project-local-test.yaml.template project-local-test.yaml
+# 2. Edit paths below to match your local environment
+# 3. Clone/create the test repos at the specified paths
+
+project:
+  coordination_repo:
+    # Path to your local test coordination repo
+    path: "~/test/coord-test"
+
+code_repositories:
+  - name: "code-test"
+    # Parent directory for worktrees (not the repo itself)
+    # Worktrees will be created at: {worktree_parent}/coordination-test_{issue#}/
+    worktree_parent: "~/test/code-test_dev"
+
+    # Name of the primary repo directory (if you have one cloned)
+    # This is optional - worktrees can work without a primary
+    primary_dir_name: "code-test"
+
+# Claude Code Permissions (optional)
+#
+# Run /apply-upgrade after configuring this file to add Edit/Write
+# allow patterns and additionalDirectories to .claude/settings.local.json.

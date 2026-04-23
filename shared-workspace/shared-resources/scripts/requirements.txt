@@ -1,0 +1,2 @@
+# Requires Python 3.8+
+pyyaml>=6.0

@@ -1,0 +1,93 @@
+# Local Project Configuration Template
+#
+# SETUP INSTRUCTIONS:
+# 1. Copy this file: cp project-local.yaml.template project-local.yaml
+# 2. Edit project-local.yaml with YOUR personal filesystem paths
+# 3. Never commit project-local.yaml (it's gitignored)
+#
+# This file contains PERSONAL settings that differ per developer:
+# - Local filesystem paths to repositories
+# - Personal worktree parent directories
+# - Any other environment-specific settings
+#
+# Shared project settings (GitHub IDs, field mappings, etc.) are in
+# project-shared.yaml, which IS tracked in git.
+
+project:
+  coordination_repo:
+    # Local filesystem path to THIS coordination repository
+    # This is where you cloned the coordination repo on your machine
+    # Example: "~/notes/myproject-coordination"
+    path: "~/notes/your-coordination-project"
+
+# Code repositories - local paths only
+# The shared metadata (GitHub URLs, branches) is in project-shared.yaml
+# NOTE: This must be at TOP LEVEL (not under project:) to merge with project-shared.yaml
+code_repositories:
+    # Example: Uncomment and customize for your repositories
+    #
+    # - name: "backend"
+    #   # Parent directory containing ALL git directories for this repo
+    #   # This includes the primary checkout AND all worktrees
+    #   # Example: ~/workspace/backend_dev/
+    #   worktree_parent: "~/workspace/backend_dev"
+    #
+    #   # Name of the primary checkout directory
+    #   # Primary checkout will be at: {worktree_parent}/{primary_dir_name}
+    #   # Example: ~/workspace/backend_dev/backend/
+    #   primary_dir_name: "backend"
+    #
+    #   # Worktrees for issues will be created at:
+    #   # {worktree_parent}/{coord_project}_{issue#}/
+    #   # Example: ~/workspace/backend_dev/myproject_7/
+    #
+    #   # Personal notes (optional)
+    #   notes: "Using PostgreSQL 14 locally"
+    #
+    # - name: "frontend"
+    #   worktree_parent: "~/workspace/frontend_dev"
+    #   primary_dir_name: "frontend"
+
+# IMPORTANT NOTES:
+#
+# 1. Directory structure:
+#    All git directories (primary + worktrees) live under worktree_parent:
+#      {worktree_parent}/
+#      ├── {primary_dir_name}/           # Primary checkout (main/master branch)
+#      ├── {coord_project}_{issue#}/     # Worktree for issue
+#      └── ...
+#    Example:
+#      ~/workspace/backend_dev/
+#      ├── backend/                      # Primary checkout
+#      ├── myproject_7/                  # Worktree for issue #7
+#      └── myproject_12/                 # Worktree for issue #12
+#
+# 2. Shared worktree_parent:
+#    Multiple coordination projects can share the same worktree_parent and
+#    primary checkout. The coordination project name in the worktree path
+#    prevents collisions.
+#
+# 3. Path expansion:
+#    Paths starting with ~ will be expanded to your home directory
+#
+# 4. Multiple coordination projects:
+#    If you work on multiple coordination projects (e.g., qarlbo, sintetic),
+#    each has its own project-local.yaml. They can share worktree_parent
+#    and primary_dir_name settings for the same code repositories.
+#
+# 5. Don't commit this file:
+#    project-local.yaml is in .gitignore - it's personal to your machine.
+#
+# 6. Keep this template up to date:
+#    When shared-config adds new repositories, update this template
+#    so new developers have a complete example to copy from.
+#
+# 7. Claude Code permissions for worktrees:
+#    After configuring this file, run /apply-upgrade in Claude Code.
+#    This automatically adds to .claude/settings.local.json:
+#    - additionalDirectories (Read access for background agents)
+#    - Edit/Write allow patterns for worktree_parent (auto-approve edits)
+#    - Edit/Write deny patterns for primary_dir_name (protect primary checkout)
+#
+#    Note: additionalDirectories alone only grants Read access.
+#    Edit/Write allow patterns are required to avoid per-edit prompts.

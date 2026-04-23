@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# Local state (NEVER commit this!)
+~/.local/claude-coordination/
+local-work.json
+
+# Project configuration
+# Split-config architecture:
+#   project-shared.yaml (tracked) - Shared constants like GitHub field IDs
+#   project-local.yaml (ignored) - Personal settings like local paths
+#   project-local.yaml.template (tracked) - Template for new developers
+project-local.yaml
+project-local-test.yaml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Personal workspace - each developer's local files
+# Ignore all content except structure files
+personal/*
+!personal/README.md
