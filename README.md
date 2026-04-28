@@ -83,7 +83,3 @@ coordination-repo/
 ├── project-local.yaml               # Local config (paths) - gitignored
 └── local-work.json                  # Agent state, time tracking - gitignored
 ```
-
-## License
-
-This is a template repository. Use it for your projects freely.
