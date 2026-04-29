@@ -1,151 +1,121 @@
 # google-docs-mcp hosting — investigation findings
 
-Investigation of TreeMetrics/back-office#1 / TreeMetrics/google-docs-mcp#1.
+For TreeMetrics/back-office#1 / TreeMetrics/google-docs-mcp#1.
 
-Revisions:
-- v1: initial review of japoveda's PR.
-- v2: amended after independent review of reviewer claims (caught the App Runner / Fargate / EC2-targeted-ALB confusion).
-- v3 *(this doc)*: stakeholder questions answered. Cloudflare estate verified — `treemetrics.dev` is the Cloudflare zone, not `treemetrics.com`. Recommendation sharpened to Option 4.
+## Requirement
 
-## Requirement (signal vs noise)
-
-- **Users**: Alex, Enda, Garret. Currently only Alex actively using it. Internal Workspace (`treemetrics.com`) only.
-- **Deliverable**: a stable public HTTPS URL for the MCP server so coworkers can add it as a Custom Connector / streamableHttp endpoint.
-- **Deadline**: soft, ~2026-05-05. Alex framed it as nice-to-have: *"if it is not much time or too complicated… otherwise we will also manage."*
-- **No SLA, no PII risk beyond what Workspace already permits**, ~3 users today, possibly company-wide later (no timeline).
-- **AWS framing**: confirmed as a soft preference ("where everything else is"), not a hard constraint. See "Stakeholder answers" below.
+- Users today: Alex, Enda, Garret. Workspace (`treemetrics.com`) only.
+- Deliverable: stable public HTTPS URL for the MCP server (Claude Custom Connector / streamableHttp endpoint).
+- Deadline: soft, ~2026-05-05.
+- No SLA. Possible expansion to whole company; no timeline.
+- AWS framing in the issue title was confirmed by stakeholder as a soft preference ("everything else is there"), not a hard constraint.
 
 ## PR state (TreeMetrics/google-docs-mcp#1)
 
-What's in the PR:
-- `docker-compose.yml` (host 8088 → container 8080), `.env.example`, `.gitignore` tweak
-- `docs/deploy-aws.md` — 200 lines: runtime contract, hosting comparison (App Runner / ECS Fargate / EC2), OAuth / consent-screen guide, MCP client onboarding, troubleshooting
-- Image builds, container runs locally, OAuth metadata endpoint verified
+In: `docker-compose.yml`, `.env.example`, `.gitignore` tweak; `docs/deploy-aws.md` (~200 lines: runtime contract, hosting comparison, OAuth setup, MCP client integration, troubleshooting). Image builds and runs locally; OAuth metadata endpoint returns expected response.
 
-What's not in the PR:
-- No service deployed
-- E2E OAuth flow not verified (blocked on adding redirect URI to Google client + GCP consent-screen Internal switch)
-- AWS service choice "TBD"
-- No token-persistence adapter (in-memory only)
-- No CI
+Not in: deployed service; E2E OAuth verification (blocked on Google client redirect URI + consent-screen Internal switch); host decision (marked "TBD"); persistent token store wired up; CI.
 
-Doc gap (caught in review): the cold-start failure mode (first OAuth redirect → Claude 404 page) is documented in upstream README for Cloud Run and applies equally to App Runner / Fargate-with-scale-to-zero. Fix is `--min-instances=1` (~$2-3/mo). Not mentioned in `deploy-aws.md`. Should be added before merge regardless of host choice.
+Doc gap: cold-start failure (first OAuth redirect → 404 on cold instance) is documented upstream for Cloud Run only, but applies equally to App Runner / Fargate-with-scale-to-zero. Fix is `--min-instances=1` or platform-equivalent (~$2-3/mo). Not currently mentioned in `docs/deploy-aws.md`.
 
-## AWS estate (verified)
+## Verified infrastructure
 
-Region: **eu-west-1** for everything.
+### AWS (eu-west-1)
 
-**Prod account (768576218716):**
+Prod (768576218716):
 - ECS Fargate clusters: `sintetic-backend-app-production-cluster`, `fs-cluster-staging`, `geoserver-cluster-staging`
-- ALBs:
-  - `sintetic-be-production-alb` — target type `ip` (Fargate), serves sintetic
-  - `fs-service-staging-alb` — target type `ip` (Fargate), serves forest-spatial staging
-  - `geoserver-service-staging-alb` — target type `ip` (Fargate), serves geoserver staging
-  - `staging-hq-alb` — target type **`instance`** (EC2), single target `i-0ddad08d72efc0dbf` currently `unhealthy`, cert is `forestspatial.treemetrics.com`
-- ECR repos: `sintetic-backend-app`, `forest-spatial`, `geoserver`, plus CDK assets
-- ACM certs: `forestspatial.treemetrics.com`, `api.sintetic.treemetrics.com`, `*.sintetic.treemetrics.com`
-- EC2 instances (running): `treetops_backend` (t3.large), `foresthq` (m4.2xlarge), `staging_foresthq`, `beta_foresthq`
+- ALBs (Fargate-targeted, app-dedicated, app-specific cert): `sintetic-be-production-alb`, `fs-service-staging-alb`, `geoserver-service-staging-alb`
+- ALBs (other): `staging-hq-alb` — EC2-targeted, single target `i-0ddad08d72efc0dbf` currently unhealthy
+- ECR: `sintetic-backend-app`, `forest-spatial`, `geoserver`
+- ACM: `forestspatial.treemetrics.com`, `api.sintetic.treemetrics.com`, `*.sintetic.treemetrics.com`
+- EC2: `treetops_backend` (t3.large), `foresthq` (m4.2xlarge), `staging_foresthq`, `beta_foresthq`
 
-**Dev account (265801606451):**
-- 24 Lambdas — all AWSAccelerator / Control Tower platform glue, not application code
-- No ECS, no App Runner, no DynamoDB
-- EC2 running: `fw-dev`, `sintetic-dev`, three `hq-*-build` boxes
-- Route53: `preview.treemetrics.com` only
+Dev (265801606451):
+- 24 Lambdas (all AWSAccelerator / Control Tower platform glue)
+- No ECS, App Runner, or DynamoDB
+- EC2: `fw-dev`, `sintetic-dev`, three `hq-*-build`
+- Route53: `preview.treemetrics.com`
 
-**Org-wide:**
-- CDK is the IaC (CDK accel ECR repos in both accounts)
-- No App Runner anywhere; SCP `p-330oroph` denies `apprunner:*` in `us-west-2` and `eu-west-2` — allowed in `eu-west-1`. Signals an org-level opinion has already been taken.
+Org-wide:
+- IaC is CDK (CDK assets in both accounts)
+- No App Runner anywhere. SCP `p-330oroph` denies `apprunner:*` in `us-west-2` and `eu-west-2`; allowed in `eu-west-1`.
 - No DynamoDB tables
 
-## Cloudflare estate (verified, corrects earlier note)
+### Cloudflare
 
-- `treemetrics.com` is **not** on Cloudflare — it's WordPress on Apache (DigitalOcean, IP 67.205.2.2). Earlier note was wrong.
-- `treemetrics.dev` **is** the org's Cloudflare zone, used as the public surface for tunneled internal tools (`cf-ray` confirmed in headers).
-- A named tunnel already exists: UUID `f6425610-0852-4ce7-a8c5-97985fd350d1`, with active hostnames `forest-spatial.treemetrics.dev`, `cs-app.treemetrics.dev`, `cs-map-app.treemetrics.dev`, `cs-api.treemetrics.dev` (climate-smart team).
-- **japoveda already operates `cloudflared`** (resolved climate-smart#129 by restarting it).
-- The "Cloudflare One Connector write permission" Alex is blocked on is for **his personal local-PC tunnel**. Adding `mcp.treemetrics.dev` to the existing org tunnel does **not** require it.
-- Net effect: a "Cloudflare tunnel + `treemetrics.dev` + `cloudflared` on a server" pattern is already in production for internal tools. This is *the* internal-tools pattern, not an alternative to one.
+- `treemetrics.dev` is on Cloudflare (`cf-ray` and `server: cloudflare` in response headers).
+- Named tunnel `f6425610-0852-4ce7-a8c5-97985fd350d1` routes: `forest-spatial.treemetrics.dev`, `cs-app.treemetrics.dev`, `cs-map-app.treemetrics.dev`, `cs-api.treemetrics.dev`.
+- @japoveda has operated `cloudflared` for these tunnels (resolved climate-smart#129 by restarting the daemon).
+- The "Cloudflare One Connector write permission" Alex was blocked on is for *his personal local-PC tunnel*. Not verified whether the same permission is needed to add new hostnames to the existing org tunnel.
+- `treemetrics.com` is a separate property — WordPress on Apache, DigitalOcean (IP 67.205.2.2). Not on Cloudflare.
 
-## Options
+### GCP
+
+Verified usage in TreeMetrics org code:
+- `TreeMetrics/google-docs-mcp`: `@google-cloud/firestore` (upstream's `FirestoreTokenStorage`); reads `GCLOUD_PROJECT`. Bundled in upstream, not yet exercised against a live project.
+- `TreeMetrics/ForestSpatial`: `google-cloud-storage==3.1.0` in `requirements.txt`.
+- `TreeMetrics/crann-evolution`: `from google.cloud import storage` in `export_monitor.py`.
+- A GCP project must exist for the Workspace OAuth client (per japoveda's PR comments referencing `gcloud run deploy`).
+
+Not verified (no `gcloud` available locally; could not enumerate via API):
+- Whether one shared GCP project or multiple.
+- Whether any Cloud Run / GKE / GCE compute currently runs.
+- Billing setup, IAM principals, monitoring posture.
+
+## Hosting options
 
 ### Option 1 — App Runner (eu-west-1)
+- Allowed by SCP; no other App Runner services in the org.
+- `MinSize: 1` required for cold-start fix.
+- Setup: ECR push, App Runner config, Secrets Manager, Cloudflare CNAME `mcp.treemetrics.dev`, OAuth redirect URI.
+- Approximate effort: ~1 day. Approximate cost: ~$25-50/mo.
 
-- New surface for the org (no existing App Runner services), but allowed by SCP in this region
-- Built-in HTTPS, autoscale, deploy-from-ECR, secrets refs
-- Cold-start gotcha: needs `MinSize: 1` provisioned concurrency to avoid first-request OAuth 404
-- In-memory tokens fine for 3 users; redeploys are rare
-- Effort: ~1 day end-to-end (ECR push, App Runner config, Secrets Manager, Cloudflare CNAME `mcp.treemetrics.dev` → App Runner default URL, OAuth client redirect URI)
-- Marginal cost: ~$25–50/mo (App Runner has a base + per-request pricing; small workloads land in this range)
+### Option 2 — ECS Fargate (new cluster + ALB + CDK)
+- Greenfield (new cluster, ALB, ACM cert, CDK stack).
+- Approximate effort: 1-2 days. Approximate cost: ~$22/mo ALB + ~$10-15/mo Fargate task.
 
-### Option 2 — ECS Fargate, new dedicated cluster + new ALB + CDK
+### Option 3 — Reuse existing Fargate ALB
+- The Fargate-targeted ALBs are each dedicated to one app with an app-specific cert; adding a host/path rule for MCP couples it to a production app's listener and cert.
+- `staging-hq-alb` (initially considered for reuse) is EC2-targeted and currently unhealthy.
 
-- Greenfield: new cluster, new ALB, new ACM cert, new CDK stack
-- Matches the platform pattern but doesn't actually reuse anything
-- Effort: 1–2 days CDK + verification
-- Marginal cost: ~$22/mo ALB base + ~$10–15/mo Fargate task
+### Option 4 — Colocate on existing EC2 + Cloudflare tunnel
+- `docker compose up -d` on `treetops_backend` (t3.large).
+- Add `mcp.treemetrics.dev` to the existing `f6425610-…` tunnel.
+- Approximate cost: $0/mo.
+- Effort depends on: access to `treetops_backend`; access to the tunnel config (machine where `cloudflared` runs); noisy-neighbour assessment (what currently runs on `treetops_backend`).
+- Not captured in IaC unless added.
 
-### Option 3 — Reuse an existing Fargate ALB with path / host routing
+### Option 5 — Cloud Run + Firestore
+- `gcloud run deploy --source .` per upstream README.
+- Firestore token store built into upstream — no adapter to write.
+- `--min-instances=1` for cold-start.
+- Cloudflare CNAME `mcp.treemetrics.dev`.
+- Approximate cost: ~$2-3/mo.
+- GCP compute usage org-wide is not verified; whether this joins an existing footprint or establishes one is unknown.
 
-Reviewer initially suggested `staging-hq-alb`, but **that ALB is EC2-targeted and currently unhealthy**, not Fargate. Real Fargate-fronting ALBs are `sintetic-be-production-alb`, `fs-service-staging-alb`, `geoserver-service-staging-alb` — each dedicated to one app with an app-specific cert. Adding a path/host rule means coupling an internal MCP tool to a production app's listener and cert. Possible but semantically wrong (e.g. `mcp.sintetic.treemetrics.com` is misleading; `mcp.treemetrics.com` would need a new SNI cert anyway, at which point Option 2 is barely more work). **Not recommended.**
+## Tradeoffs
 
-### Option 4 — Colocate on existing EC2 + Cloudflare tunnel (matches existing pattern)
+| Axis | Option 1 | Option 2 | Option 4 | Option 5 |
+|------|---|---|---|---|
+| Setup effort | ~1 day | 1-2 days | Depends on coordination | Single command per upstream README |
+| Approx. $/mo | $25-50 | $32-37 | $0 | $2-3 |
+| Token persistence | In-memory or new DDB adapter (~100 LOC) | Same | Same | Firestore (already in upstream) |
+| In IaC | CDK | CDK | Not by default | Not by default |
+| Platform already used in-org | AWS (yes) | AWS (yes) | EC2 + Cloudflare tunnel pattern (climate-smart) | GCS used in 2 repos; compute not verified |
 
-`treetops_backend` (t3.large) has the headroom to host a 100 MB Node container next to whatever it currently runs.
-- `docker compose up -d`
-- Add `mcp.treemetrics.dev` as a route on the existing `f6425610-…` named tunnel (no new tunnel, no new account access required)
-- No inbound port, no ALB, no ACM, no Route53 — Cloudflare handles HTTPS and DNS
-- Effort: ~1 hour. The "permission Alex is blocked on" does **not** apply here — that's for *Alex's personal* tunnel; org tunnel routes are managed by whoever runs `cloudflared` (japoveda).
-- Cost: ~$0 (uses existing instance + free Cloudflare tunnel tier)
-- Caveats: noisy-neighbour risk (need to check what `treetops_backend` runs); tied to that instance's lifecycle; not reflected in IaC unless we write it in
-- Migration cost back to AWS later if scale or operational pressure justifies it: change one Cloudflare CNAME, push image to ECR, point at App Runner. Image is already containerised; nothing in Option 4 makes Option 1 harder later.
+## PR-level edits to TreeMetrics/google-docs-mcp#1
 
-### Option 5 — Cloud Run + Firestore (upstream-supported path)
+- Add cold-start / `--min-instances=1` (or platform-equivalent) note to `docs/deploy-aws.md`.
+- Replace the `aws apprunner` CLI deploy sketch with the chosen option's path.
+- Drop the "AWS service: TBD" framing once an option is chosen.
+- Rename `docs/deploy-aws.md` if the chosen option isn't AWS.
 
-- One command: `gcloud run deploy --source .`
-- Firestore token store ships in upstream code, no adapter to write
-- ~$2–3/mo with `--min-instances=1`
-- Cost of being off-platform: separate IAM, billing, monitoring, on-call surface in a different cloud — small at 3 users, real at scale
-- Worth considering only if there is appetite for a non-AWS internal tool
+## Pre-deploy work (regardless of option)
 
-## Recommendation
-
-For this specific use case (3 users today, possibly company-wide later, no SLA, internal tool, soft deadline):
-
-**Option 4 + in-memory tokens.** Clear primary.
-
-Why it wins after stakeholder context:
-- The "Cloudflare tunnel + `treemetrics.dev`" pattern is already the org's internal-tools pattern (climate-smart team uses it; japoveda operates `cloudflared`). Option 4 *is* on-pattern; the AWS-native paths are the off-pattern ones for internal tools.
-- AWS is a soft preference ("everything else is there"), not a hard constraint. That preference doesn't justify ~1 day of work + ~$25–50/mo when migrating later is a CNAME swap.
-- Scale is unknown but defer-able: the only thing scale really flips is the token store (in-memory → DDB adapter ~100 LOC). Build the simple one now, migrate when redeploys actually start hurting users.
-- Effort is ~1 hour vs ~1 day. Cost is ~$0 vs ~$25–50/mo. Reversibility is cheap.
-
-**Fallback if Option 4 is rejected for noisy-neighbour reasons:** spin up a small dedicated EC2 (e.g. t3.micro/small in eu-west-1) running `docker compose up -d` and `cloudflared`, still using the existing tunnel and `mcp.treemetrics.dev`. Keeps the on-pattern Cloudflare ingress, separates the lifecycle from `treetops_backend`. ~half a day, ~$8/mo.
-
-**Fallback if "must be a managed AWS service" is asserted as a hard line:** Option 1 (App Runner) with `MinSize: 1`, in-memory tokens, Cloudflare CNAME `mcp.treemetrics.dev` → App Runner default URL. ~1 day, ~$25–50/mo.
-
-**Reject:** Option 2 as the first move (over-spec for 3–N users), Option 3 (ALB reuse doesn't actually reuse anything cleanly), Option 5 (off-platform; no upside given Cloudflare path already exists in-org).
-
-## Required regardless of host
-
-- Set Google OAuth client to **Web application** type
-- Authorised redirect URI = `${BASE_URL}/oauth/callback` for each environment
-- Consent screen = **Internal** (Workspace-only, no verification review, no test-user list)
-- Enable Docs / Sheets / Drive / Gmail / Calendar / Apps Script APIs on the GCP project
-- Authorise the full scope list on the consent screen
-- `ALLOWED_DOMAINS=treemetrics.com` as defence-in-depth
-- Pin `JWT_SIGNING_KEY` so issued MCP tokens survive restarts
-- Add cold-start mitigation note to `docs/deploy-aws.md` before merging the PR
-
-## Stakeholder context (confirmed)
-
-- **AWS framing**: soft preference ("where everything else is"), not a hard constraint. Insufficient to override an off-AWS path that matches the org's existing internal-tools pattern.
-- **Cloudflare**: account exists, zone is `treemetrics.dev`, named tunnel `f6425610-…` already in production, japoveda operates `cloudflared`. Adding `mcp.treemetrics.dev` to the existing tunnel needs no new permissions. Alex's "Connector write permission" blocker is for his personal local-PC tunnel only — orthogonal to org-level deployment.
-- **Scale**: 3 users today, possibly company-wide later, no timeline. Defer-able: scale only really affects the token-store decision. Ship in-memory now; add a DDB-style adapter (~100 LOC) when redeploys start being an annoyance.
-- **Pattern**: the "Cloudflare-tunnel-on-`treemetrics.dev`" internal-tools pattern already exists (climate-smart's `*.treemetrics.dev` services). This service joins it rather than seeding a new one — no pattern-investment argument for Option 2.
-
-## Required PR-level edits
-
-- Replace the `aws apprunner` CLI deploy sketch with a `compose-on-EC2 + Cloudflare tunnel` deploy sketch (Option 4 path), pointing at the existing `f6425610-…` tunnel and `mcp.treemetrics.dev`.
-- Drop the "AWS service: TBD" framing — the host decision is no longer "TBD AWS service", it's "Cloudflare tunnel on existing EC2, Option 1 (App Runner) is the documented escape hatch".
-- Keep the cold-start / `MinSize: 1` note in the App Runner appendix (still applies to the escape-hatch path).
-- Rename the doc — `deploy-aws.md` is now misleading. Suggest `deploy.md` with sections per option.
+- Google OAuth client: Web application type.
+- Authorised redirect URI: `${BASE_URL}/oauth/callback` per environment.
+- Consent screen: Internal (Workspace-only, no verification review).
+- Enable APIs on the GCP project: Docs, Sheets, Drive, Gmail, Calendar, Apps Script.
+- Authorise the full scope list on the consent screen.
+- `ALLOWED_DOMAINS=treemetrics.com` (defence-in-depth).
+- Pin `JWT_SIGNING_KEY` so issued MCP tokens survive restarts.
